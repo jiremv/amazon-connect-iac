@@ -1,0 +1,19 @@
+# More information about the configuration file can be found here:
+# https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html
+version = 0.1
+
+[default.deploy.parameters]
+template_file = "template-connect.yaml"
+stack_name = "amazon-connect-iac-dev"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+s3_bucket = "dev-artifacts-bucket-s3-connect"
+parameter_overrides = "Environment=dev"
+
+[prod.deploy.parameters]
+template_file = "template-connect.yaml"
+stack_name = "amazon-connect-iac-prod"
+region = "us-east-2"
+capabilities = "CAPABILITY_IAM"
+s3_bucket = "prod-artifacts-bucket-s3-connect1"
+parameter_overrides = "Environment=prod"

@@ -1,0 +1,8 @@
+deploy:
+  parameters:
+    stack_name: amazon-connect-iac-dev
+    s3_bucket: dev-artifacts-bucket-s3-connect
+    s3_prefix: amazon-connect-iac
+    region: us-east-1
+    capabilities: CAPABILITY_IAM
+    role_arn: arn:aws:iam::545200407638:role/aws-sam-cli-managed-amazo-CloudFormationExecutionRo-7mFWmKbG3Tx6

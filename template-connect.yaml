@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Amazon Connect instance IaC using CloudFormation
+
+Parameters:
+  Environment:
+    Type: String
+    Description: Deployment environment (e.g., dev, prod)
+    AllowedValues:
+      - dev
+      - prod
+    Default: dev
+
+Resources:
+  MyConnectInstance:
+    Type: AWS::Connect::Instance
+    Properties:
+      IdentityManagementType: SAML
+      InstanceAlias: !Sub my-dev-connect-${Environment}
+      Attributes:
+        InboundCalls: true
+        OutboundCalls: true
+        AutoResolveBestVoices: true
+        ContactLens: true
+
+  MyDirectoryId:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub /amazon-connect/directory-id-${Environment}
+      Type: String
+      Value: !Ref MyConnectInstance
+
+Outputs:
+  ConnectInstanceId:
+    Description: The ID of the Amazon Connect instance
+    Value: !Ref MyConnectInstance
+
+  ConnectDirectoryId:
+    Description: SSM parameter storing the instance ID
+    Value: !Ref MyDirectoryId

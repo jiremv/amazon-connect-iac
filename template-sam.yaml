@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda Java y API Gateway con CORS
+
+Globals:
+  Function:
+    Timeout: 10
+    Runtime: java21
+
+Resources:
+
+  GreetingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: GreetingFunction
+      Handler: com.connect.GreetingHandler::handleRequest
+      CodeUri: .
+      MemorySize: 1024
+      Timeout: 10
+      Role: !GetAtt CreateGreetingRole.Arn
+      Events:
+        ConnectPost:
+          Type: Api
+          Properties:
+            Path: /connect
+            Method: POST
+
+  CreateGreetingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaExecutionPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+
+Outputs:
+  LambdaGreetingArn:
+    Description: ARN de la Lambda de saludo
+    Value: !GetAtt GreetingFunction.Arn
