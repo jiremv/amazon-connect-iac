@@ -120,16 +120,20 @@ Value               arn:aws:lambda:us-east-1:545200407638:function:GreetingFunct
 └── ...
 ```
 
-## 📘 Notas
-
-- Se utiliza el modo `AWS_PROXY` (integración directa entre API Gateway y Lambda).
-- La respuesta de Lambda debe incluir `statusCode`, `headers`, y `body` como string JSON.
-
+## 📘 Aplicaciones
+Amazon Connect es un servicio serverless de contact center en la nube que te permite:
+- Recibir y hacer llamadas telefónicas (voz)
+- Atender chats en tiempo real (chat)
+- Integrar chatbots con Amazon Lex
+- Integrar con Lambda para lógica personalizada
+- Grabaciones, colas, horarios, análisis de sentimientos, etc.
+  
+![img_4.png](img_4.png)
 ---
 
-### 🧠 Amazon Connect
+### 🧠 Prueba real
 
-- Se puede probar ejecutando `https://my-dev-connect-dev.my.connect.aws`.
+- Se puede probar llamando a la línea gratuita `0 800 71638`.
 
 ---
 
