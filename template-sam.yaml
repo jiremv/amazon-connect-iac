@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Lambda Java y API Gateway con CORS
+Description: Amazon Connect Contact Center IaC con AWS SAM
 
 Globals:
   Function:
@@ -9,21 +9,76 @@ Globals:
 
 Resources:
 
-  GreetingFunction:
-    Type: AWS::Serverless::Function
+  MyApi:
+    Type: AWS::Serverless::Api
     Properties:
-      FunctionName: GreetingFunction
-      Handler: com.connect.GreetingHandler::handleRequest
-      CodeUri: .
-      MemorySize: 1024
-      Timeout: 10
-      Role: !GetAtt CreateGreetingRole.Arn
-      Events:
-        ConnectPost:
-          Type: Api
-          Properties:
-            Path: /connect
-            Method: POST
+      Name: API Amazon Connect
+      Description: My AWS API Gateway config
+      StageName: prod
+      EndpointConfiguration: REGIONAL
+      Cors:
+        AllowMethods: "'POST,OPTIONS'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+
+  ResourceGreeting:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt MyApi.RootResourceId
+      PathPart: create-greeting
+      RestApiId: !Ref MyApi
+
+  GreetingOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: OPTIONS
+      Integration:
+        IntegrationResponses:
+          - ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'Authorization, Content-Type, X-UserId, X-Roles, X-Custom-Header, X-Amz-Date, X-Api-Key, X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            StatusCode: '200'
+        Type: MOCK
+        RequestTemplates:
+          "application/json": "{ \"statusCode\": 200 }"
+      MethodResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+          StatusCode: '200'
+      OperationName: greeting-option-method
+      ResourceId: !Ref ResourceGreeting
+      RestApiId: !Ref MyApi
+
+  GreetingPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        IntegrationHttpMethod: POST
+        IntegrationResponses:
+          - ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Authorization, Content-Type, X-UserId, X-Roles, X-Custom-Header, X-Amz-Date, X-Api-Key, X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            StatusCode: '200'
+        Type: AWS_PROXY
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations"
+          - lambdaArn: !GetAtt GreetingFunction.Arn
+      MethodResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+          StatusCode: '200'
+      OperationName: greeting-post-method
+      ResourceId: !Ref ResourceGreeting
+      RestApiId: !Ref MyApi
 
   CreateGreetingRole:
     Type: AWS::IAM::Role
@@ -36,7 +91,7 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: LambdaExecutionPolicy
+        - PolicyName: CustomLambdaExecutionPolicy
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -46,8 +101,65 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: "*"
+
+  GreetingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: GreetingFunction
+      Handler: com.connect.GreetingHandler::handleRequest
+      CodeUri: target/lambda-greeting-1.0.0-runner.jar
+      Runtime: java21
+      MemorySize: 1024
+      Timeout: 10
+      Role: !GetAtt CreateGreetingRole.Arn
+      Events:
+        ConnectPost:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyApi
+            Path: /connect
+            Method: POST
+    DependsOn:
+      - CreateGreetingRole
+
+  GreetingSessionInvokePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: GreetingSessionInvokePolicy
+      Roles:
+        - !Ref CreateGreetingRole
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: lambda:InvokeFunction
+            Resource: !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${GreetingFunction}
+
+  GreetingFunctionPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn:
+      - MyApi
+      - GreetingFunction
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref GreetingFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${MyApi}/*/POST/create-greeting
+
+  apiGatewayDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    DependsOn:
+      - GreetingPostMethod
+    Properties:
+      RestApiId: !Ref MyApi
+      StageName: prod
 
 Outputs:
+
   LambdaGreetingArn:
     Description: ARN de la Lambda de saludo
     Value: !GetAtt GreetingFunction.Arn
