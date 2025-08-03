@@ -67,7 +67,7 @@ POST /create-greeting
 ## 🔨 Compilación
 
 ```bash
-mvn clean install
+mvn clean package -Pjvm
 ```
 
 ## 📦 Despliegue en BASH
@@ -75,9 +75,37 @@ mvn clean install
 ```bash
 set PYTHONIOENCODING=utf-8
 sam deploy --config-env default
+sam deploy --template-file template-connect.yaml --stack-name amazon-connect-iac-dev --region us-east-1 --capabilities CAPABILITY_IAM --s3-bucket dev-artifacts-bucket-s3-connect
 sam deploy --template-file template-sam.yaml --stack-name greeting-lambda-stack --capabilities CAPABILITY_IAM --region us-east-1 --s3-bucket dev-artifacts-bucket-s3-connect
 
 ```
+### 🔧 `template-connect.yml`
+-------------------------------------------------------------------------------------------------------------------------------------------------
+Outputs
+-------------------------------------------------------------------------------------------------------------------------------------------------
+Key                 LambdaGreetingArn
+Description         ARN de la Lambda de saludo
+Value               arn:aws:lambda:us-east-1:545200407638:function:GreetingFunction
+-------------------------------------------------------------------------------------------------------------------------------------------------
+![img_2.png](img_2.png)
+
+
+### 🚀 `template-sam.yml`
+- Despliega el API Gateway
+-------------------------------------------------------------------------------------------------------------------------------------------------
+Outputs
+-------------------------------------------------------------------------------------------------------------------------------------------------
+Key                 ApiUrl
+Description         API Gateway endpoint URL
+Value               https://d5mejru4j7.execute-api.us-east-1.amazonaws.com/prod/create-greeting
+
+Key                 LambdaGreetingArn
+Description         ARN de la Lambda de saludo
+Value               arn:aws:lambda:us-east-1:545200407638:function:GreetingFunction
+-------------------------------------------------------------------------------------------------------------------------------------------------
+![img_3.png](img_3.png)
+
+
 
 ## 📁 Estructura del proyecto
 
